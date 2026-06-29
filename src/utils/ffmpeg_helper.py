@@ -58,7 +58,7 @@ def extract_audio(
     if Path(output_path).exists():
         return output_path
 
-    # --- Ваш код здесь ---
+    # --- Ваш код здесь ---   
     cmd = [
         "ffmpeg", "-i", video_path,
         "-vn",
@@ -68,7 +68,10 @@ def extract_audio(
         "-y",
         output_path,
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+    except Exception as e:
+        print(e)
     if result.returncode != 0:
         raise RuntimeError(
             f"ffmpeg завершился с ошибкой:\n{result.stderr}"

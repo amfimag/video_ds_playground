@@ -22,6 +22,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Настройка логирования
 logging.basicConfig(
@@ -87,6 +88,7 @@ def main():
     skip_stages = [s.strip() for s in args.skip.split(",")] if args.skip else []
 
     log.info(pipeline.describe())
+    load_dotenv()
 
     try:
         result = pipeline.run(args.video, skip_stages=skip_stages)

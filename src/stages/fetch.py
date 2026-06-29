@@ -48,7 +48,7 @@ class FetchStage(Stage):
             data["video_path"] = str(video_uri)
             data["fetch_meta"] = {"source": "local", "filename": Path(video_uri).name}
             return data
-
+     
         # Разбираем URI: nextcloud:///path/to/file.mp4
         cloud_type, remote = self._parse_uri(video_uri)
         filename = Path(remote).name

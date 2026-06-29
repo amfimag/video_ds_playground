@@ -113,11 +113,15 @@ class NextcloudClient(CloudClient):
         client = self._get_client()
         Path(local_path).parent.mkdir(parents=True, exist_ok=True)
         # --- Ваш код здесь ---
-        # client.download_sync(remote_path=remote_path, local_path=local_path)
-        raise NotImplementedError(
-            "Реализуйте метод download() в NextcloudClient. "
-            "См. задание docs/tasks/01_cloud_fetch.md"
-        )
+        try:
+            client.download_sync(remote_path=remote_path, local_path=local_path)
+            return Path(local_path).absolute()
+        except Exception as e:
+            print(f'Ошибка в NextcloudClient.download: {e}')
+        # raise NotImplementedError(
+        #     "Реализуйте метод download() в NextcloudClient. "
+        #     "См. задание docs/tasks/01_cloud_fetch.md"
+        # )
 
     def list_files(self, remote_dir: str, extension: str | None = None) -> list[str]:
         """

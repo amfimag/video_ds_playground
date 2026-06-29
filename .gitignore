@@ -10,6 +10,9 @@ build/
 .eggs/
 *.egg
 
+# блокноты для тестирования
+.testing/
+
 # Виртуальные окружения
 .venv/
 venv/
@@ -41,6 +44,7 @@ data/transcripts/*.txt
 # IDE
 .idea/
 .vscode/
+*.code-workspace
 *.swp
 *.swo
 
