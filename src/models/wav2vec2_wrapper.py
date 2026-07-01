@@ -58,10 +58,17 @@ class Wav2Vec2Wrapper(ModelWrapper):
             self.model.eval()
             self._device = device
         """
-        raise NotImplementedError(
-            "Реализуйте метод load().\n"
-            "Смотрите подсказку выше и задание в docs/tasks/03_transcription.md"
-        )
+        from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
+        hf_name = self.MODEL_NAMES.get(model_name,model_name)
+        self.processor = Wav2Vec2Processor.from_pretrained(hf_name)
+        self.model = Wav2Vec2ForCTC.from_pretrained(hf_name)
+        self.model.to(device)
+        self.model.eval()
+        self._device = device
+        # raise NotImplementedError(
+        #     "Реализуйте метод load().\n"
+        #     "Смотрите подсказку выше и задание в docs/tasks/03_transcription.md"
+        # )
 
     def predict(self, audio_path: str, **kwargs) -> dict:
         """
@@ -94,7 +101,41 @@ class Wav2Vec2Wrapper(ModelWrapper):
             predicted_ids = torch.argmax(logits, dim=-1)
             transcription = self.processor.batch_decode(predicted_ids)[0]
         """
-        raise NotImplementedError(
-            "Реализуйте метод predict().\n"
-            "Смотрите подсказку выше и задание в docs/tasks/03_transcription.md"
+        import torch, torchaudio
+        # 1
+        waveform, sample_rate = torchaudio.load(audio_path)
+        # 2
+        target_sample_rate = self.processor.feature_extractor.sampling_rate
+        # target_sample_rate = 16000
+        if sample_rate != target_sample_rate:
+            transform = torchaudio.transforms.Resample(sample_rate, target_sample_rate)
+            waveform = transform(waveform)
+        # 3
+        inputs = self.processor(
+            waveform.squeeze().numpy(),
+            sampling_rate=target_sample_rate,
+            return_tensors='pt',
+            padding=True
         )
+        # 4
+        # отключаем вычисление градиента
+        with torch.no_grad():
+            # получаем сырые предсказания
+            logits = self.model(**inputs.to(self._device)).logits
+        # 5 
+        # получаем наиболее вероятные классы
+        predicted_ids = torch.argmax(logits,-1)
+        # преобразуем токены в понятный текст
+        transcripts = self.processor.batch_decode(predicted_ids)[0]
+        # 6
+        result = {
+            "text": transcripts, 
+            "segments": [], 
+            "language": "ru"
+        }
+        return result
+        
+        # raise NotImplementedError(
+        #     "Реализуйте метод predict().\n"
+        #     "Смотрите подсказку выше и задание в docs/tasks/03_transcription.md"
+        # )

@@ -1,0 +1,42 @@
+pipeline:
+  name: "default_pipeline"
+  cache_dir: "data/.cache"
+  cache_intermediate: true
+  report_output: "data/reports/"
+
+  stages:
+    - name: fetch
+      params:
+        cloud: local
+        local_dir: data/raw_videos
+
+    - name: audio_extract
+      params:
+        sample_rate: 16000
+        channels: 1
+        audio_format: wav
+
+    - name: vad
+      params:
+        model: silero
+        threshold: 0.5
+        min_silence_ms: 100
+        min_speech_ms: 250
+
+    - name: quality_metrics
+      params:
+        metrics: [snr]
+
+    - name: transcription
+      params:
+        model: whisper-small
+        language: null      # null = автоопределение
+        device: cpu
+        local_dir: data/transcripts/models
+
+    - name: postprocess
+      params:
+        remove_hallucinations: true
+        remove_repetitions: true
+        use_vad_verification: true
+        min_logprob: -1.0

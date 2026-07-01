@@ -3,6 +3,9 @@
 """
 from __future__ import annotations
 
+import os
+import json
+from pathlib import Path
 from src.core.base import Stage
 from src.core.registry import register_stage, load_model
 
@@ -29,7 +32,8 @@ class TranscriptionStage(Stage):
         language: str | None = None,
         use_denoised: bool = False,
         device: str = "cpu",
-        **model_kwargs,
+        local_dir: str = 'data/transcripts/models',
+        **model_kwargs
     ):
         self.model_name = model
         self.language = language
@@ -37,6 +41,7 @@ class TranscriptionStage(Stage):
         self.device = device
         self.model_kwargs = model_kwargs
         self._model = None
+        self.local_dir = local_dir
 
     def _get_model(self):
         if self._model is None:
@@ -44,6 +49,24 @@ class TranscriptionStage(Stage):
                 self.model_name, device=self.device, **self.model_kwargs
             )
         return self._model
+    
+    def _get_transcripts_path(self, video_path):
+        stem = Path(video_path).stem
+        suffix = f'_{self.model_name}'
+        audio_filename = f'{stem}{suffix}.json'
+        audio_path = str(Path(self.local_dir) / audio_filename)
+        return audio_path    
+        
+    def _dump_transcripts(self, transcripts, audio_path):
+        os.makedirs(self.local_dir, exist_ok=True)
+        with open(audio_path, 'w+', encoding='utf8') as f:
+            json.dump(transcripts,f,indent=4)
+            
+    def _load_transcripts(self, transcripts_path):
+        with open(transcripts_path, 'r', encoding='utf8') as f:
+            result = json.load(f)
+        return result
+        
 
     def run(self, data: dict, context: dict) -> dict:
         self.validate_inputs(data, ["audio_path"])
@@ -54,10 +77,15 @@ class TranscriptionStage(Stage):
         else:
             audio_path = data["audio_path"]
 
-        result = self._get_model().predict(
-            audio_path,
-            language=self.language,
-        )
+        transcripts_path = self._get_transcripts_path(data['audio_path'])
+        if Path(transcripts_path).exists():
+            result = self._load_transcripts(transcripts_path)
+        else:
+            result = self._get_model().predict(
+                audio_path,
+                language=self.language,
+            )
+            self._dump_transcripts(result, transcripts_path)
 
         data["transcription"] = result.get("text", "")
         data["word_timestamps"] = result.get("segments", [])
